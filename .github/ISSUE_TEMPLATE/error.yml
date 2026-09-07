@@ -1,0 +1,41 @@
+name: Reportar un error
+description: Describe un problema con Universal Media Downloader Pro Beta.
+title: "[Error] "
+body:
+  - type: input
+    id: app_version
+    attributes:
+      label: Versión de la aplicación
+      placeholder: "1.0.0 Beta"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Versión de Windows
+      placeholder: "Windows 11 de 64 bits"
+    validations:
+      required: true
+  - type: input
+    id: engine
+    attributes:
+      label: Versión del motor yt-dlp
+      description: Aparece en la parte inferior de la aplicación.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: Indica si usaste descarga individual, lotes o playlists y el sitio de origen.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Qué esperabas y qué ocurrió
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Captura o mensaje de error
+      description: Opcional.

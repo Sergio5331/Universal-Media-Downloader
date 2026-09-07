@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="title">
+<title id="title">Universal Media Downloader Pro — Beta para Windows</title>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101d31"/><stop offset="1" stop-color="#183953"/></linearGradient><linearGradient id="icon" x2="1" y2="1"><stop stop-color="#51bce9"/><stop offset="1" stop-color="#367de3"/></linearGradient></defs>
+<rect width="1200" height="300" rx="24" fill="url(#bg)"/>
+<circle cx="1060" cy="130" r="195" fill="#5dc8f0" opacity=".04"/>
+<rect x="54" y="45" width="72" height="27" rx="13" fill="#254d67"/>
+<text x="68" y="64" fill="#9ddcf6" font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="2">BETA</text>
+<text x="54" y="132" fill="#f4f9ff" font-family="Segoe UI,Arial,sans-serif" font-size="43" font-weight="700">Universal Media</text>
+<text x="54" y="183" fill="#f4f9ff" font-family="Segoe UI,Arial,sans-serif" font-size="43" font-weight="700">Downloader Pro</text>
+<text x="56" y="242" fill="#aac6dd" font-family="Segoe UI,Arial,sans-serif" font-size="20">Video · Audio · Playlists · Descargas por lotes</text>
+<rect x="952" y="69" width="164" height="164" rx="40" fill="url(#icon)"/>
+<path d="M1034 104V163M1009 140L1034 165L1059 140M995 177V194H1073V177" fill="none" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
