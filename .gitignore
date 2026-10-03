@@ -1,0 +1,27 @@
+# Entornos y archivos generados
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+build/
+dist/
+dist_instalador/
+*.egg-info/
+.pytest_cache/
+.idea/
+.vscode/
+
+# Herramientas externas
+ffmpeg.exe
+ffprobe.exe
+
+# Configuración privada y descargas
+.env
+.env.*
+cookies*.txt
+Downloads/
+downloads/
+*.part
+*.ytdl
+Thumbs.db
+Desktop.ini

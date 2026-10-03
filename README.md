@@ -52,7 +52,44 @@ Las cookies del navegador son opcionales y están desactivadas inicialmente. Pue
 
 [Reporta un error](https://github.com/Sergio5331/Universal-Media-Downloader/issues/new?template=error.yml) indicando la versión de Windows, la versión del motor que aparece en la aplicación y los pasos para reproducirlo.
 
-Este repositorio reúne instaladores, documentación y reportes de la beta. No contiene el código fuente de la aplicación.
+## Código fuente y licencia
+
+El código fuente de la aplicación está disponible en este repositorio bajo la **GNU General Public License versión 3 (GPL-3.0-only)**. Puedes usarlo, estudiarlo, modificarlo y redistribuirlo conforme a [LICENSE](LICENSE). Al distribuir versiones modificadas, debes proporcionar el código fuente correspondiente bajo la misma licencia. La aplicación se ofrece sin garantía.
+
+Las dependencias y las herramientas externas, incluido FFmpeg, conservan sus propias licencias. La licencia de este proyecto no sustituye las de esos componentes.
+
+## Ejecutar desde el código fuente (Windows)
+
+Necesitas **Python 3.11 o superior**, con Tkinter, y **FFmpeg**. Obtén FFmpeg y FFprobe desde una distribución para Windows enlazada en [ffmpeg.org](https://ffmpeg.org/download.html) y coloca `ffmpeg.exe` y `ffprobe.exe` en la raíz del proyecto, junto a `app_descargador.py`. Estos binarios no están incluidos en el repositorio.
+
+En PowerShell:
+
+```powershell
+git clone https://github.com/Sergio5331/Universal-Media-Downloader.git
+cd Universal-Media-Downloader
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app_descargador.py
+```
+
+El motor actualizable se guarda en `%LOCALAPPDATA%\UniversalDownloader\motor`. La aplicación consulta PyPI al iniciar y permite actualizarlo con el botón **Actualizar motor**.
+
+## Compilar el ejecutable y el instalador
+
+Con el entorno anterior y los binarios de FFmpeg en la raíz:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m PyInstaller --clean --noconfirm app_descargador.spec
+```
+
+El ejecutable se genera en `dist\app_descargador.exe`. Para crear el instalador, instala [Inno Setup](https://jrsoftware.org/isinfo.php), abre `instalador.iss` y compílalo. El resultado aparece en `dist_instalador`. El instalador muestra la licencia GPLv3.
+
+Si redistribuyes un ejecutable, proporciona también su código fuente correspondiente, los archivos de compilación y las licencias aplicables a los componentes incluidos. Publica los cambios de código que hayas realizado, y no solo un enlace a una versión anterior del proyecto.
+
+## Contribuir
+
+Abre un issue para describir una mejora o envía un pull request con tus cambios. Explica cómo verificaste el comportamiento en Windows. Las contribuciones a este proyecto se distribuyen bajo GPL-3.0-only.
 
 ---
 
