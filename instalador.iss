@@ -1,6 +1,9 @@
 ﻿[Setup]
 AppName=Universal Media Downloader Pro
 AppVersion=1.0.0
+AppVerName=Universal Media Downloader Pro 1.0.0
+VersionInfoVersion=1.0.0.0
+VersionInfoDescription=Instalador de Universal Media Downloader Pro
 AppPublisher=Sergio
 ; SPDX-License-Identifier: GPL-3.0-only
 LicenseFile=LICENSE
@@ -23,6 +26,7 @@ Name: "desktopicon"; Description: "Crear un acceso directo en el Escritorio"; Gr
 [Files]
 Source: "dist\app_descargador.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "icono.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Universal Media Downloader"; Filename: "{app}\app_descargador.exe"; IconFilename: "{app}\icono.ico"

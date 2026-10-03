@@ -1,12 +1,12 @@
 name: Reportar un error
-description: Describe un problema con Universal Media Downloader Pro Beta.
+description: Describe un problema con Universal Media Downloader Pro.
 title: "[Error] "
 body:
   - type: input
     id: app_version
     attributes:
       label: Versión de la aplicación
-      placeholder: "1.0.0 Beta"
+      placeholder: "1.0.0"
     validations:
       required: true
   - type: input

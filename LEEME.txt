@@ -1,0 +1,28 @@
+Universal Media Downloader Pro 1.0.0
+Windows de 64 bits
+
+INSTALACION
+1. Ejecuta Instalador_UniversalDownloader_v1.0.exe.
+2. Lee la licencia GNU GPLv3 y sigue el asistente en español.
+3. Opcionalmente, crea un acceso directo en el escritorio.
+4. Abre Universal Media Downloader desde el menu Inicio.
+
+USO
+Pega un enlace, pulsa Buscar, elige video o audio y la carpeta de destino.
+Para varios enlaces, pega uno por linea en la pestaña de lotes.
+Se requiere Internet para descargar contenido y actualizar el motor.
+Python y FFmpeg estan incluidos en el ejecutable.
+
+LICENCIA Y CODIGO FUENTE
+GNU General Public License version 3 (GPL-3.0-only).
+Codigo y archivos de compilacion:
+https://github.com/Sergio5331/Universal-Media-Downloader/tree/v1.0.0
+La licencia se instala en la carpeta de la aplicacion.
+
+NOTAS
+El funcionamiento depende del sitio de origen y del motor yt-dlp.
+Comprueba los archivos de destino al finalizar una cola.
+El instalador no tiene firma digital de editor.
+
+VERIFICACION
+SHA256.txt contiene el hash del instalador.
