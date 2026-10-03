@@ -16,13 +16,16 @@ Python y FFmpeg estan incluidos en el ejecutable.
 LICENCIA Y CODIGO FUENTE
 GNU General Public License version 3 (GPL-3.0-only).
 Codigo y archivos de compilacion:
-https://github.com/Sergio5331/Universal-Media-Downloader/tree/v1.0.0
+https://github.com/Sergio5331/Universal-Media-Downloader
+La publicacion incluye UniversalDownloader-1.0.0-source.zip con el codigo usado.
 La licencia se instala en la carpeta de la aplicacion.
 
 NOTAS
 El funcionamiento depende del sitio de origen y del motor yt-dlp.
 Comprueba los archivos de destino al finalizar una cola.
-El instalador no tiene firma digital de editor.
+La aplicacion y el instalador tienen una firma de desarrollo autofirmada.
+Windows puede mostrar un aviso: el certificado no es de un editor verificado.
+Consulta docs/SIGNING.md en el repositorio para conocer la huella publica.
 
 VERIFICACION
 SHA256.txt contiene el hash del instalador.

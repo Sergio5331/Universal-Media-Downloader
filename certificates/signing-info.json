@@ -1,0 +1,9 @@
+{
+  "type": "self-signed-development",
+  "subject": "CN=Sergio5331",
+  "thumbprint": "91B50F7DE25888D2C77C9A9A1B2B3CB6093538CC",
+  "valid_from": "2026-10-03T06:27:12.0000000Z",
+  "valid_until": "2029-10-03T06:37:12.0000000Z",
+  "public_certificate": "UniversalDownloader-development.cer",
+  "timestamped": false
+}

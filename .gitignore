@@ -6,6 +6,9 @@ __pycache__/
 build/
 dist/
 dist_instalador/
+*.pfx
+*.p12
+*.key
 *.egg-info/
 .pytest_cache/
 .idea/

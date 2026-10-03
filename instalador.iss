@@ -3,6 +3,8 @@ AppName=Universal Media Downloader Pro
 AppVersion=1.0.0
 AppVerName=Universal Media Downloader Pro 1.0.0
 VersionInfoVersion=1.0.0.0
+VersionInfoProductName=Universal Media Downloader Pro
+VersionInfoProductVersion=1.0.0
 VersionInfoDescription=Instalador de Universal Media Downloader Pro
 AppPublisher=Sergio
 ; SPDX-License-Identifier: GPL-3.0-only

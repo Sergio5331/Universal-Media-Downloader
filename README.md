@@ -45,7 +45,7 @@ Las cookies del navegador son opcionales y están desactivadas inicialmente. Pue
 
 - La compatibilidad con sitios puede cambiar. Actualizar el motor puede ayudar, pero no garantiza que todos los enlaces funcionen.
 - El mensaje final de la cola indica que terminó el procesamiento; en esta versión no garantiza que todos los archivos se hayan descargado. Comprueba la carpeta de destino.
-- El instalador todavía no tiene firma digital de editor; Windows puede mostrar un aviso.
+- La distribución utiliza una firma de desarrollo con certificado autofirmado. Windows puede mostrar un aviso porque el certificado no pertenece a un editor validado por una autoridad certificadora. Consulta la [información de firma](docs/SIGNING.md).
 - El instalador incorpora la licencia GPLv3. No se ha realizado una prueba de descarga de cada plataforma para esta publicación.
 
 ## Ayuda y comentarios
@@ -86,6 +86,10 @@ Con el entorno anterior y los binarios de FFmpeg en la raíz:
 El ejecutable se genera en `dist\app_descargador.exe`. Para crear el instalador, instala [Inno Setup](https://jrsoftware.org/isinfo.php), abre `instalador.iss` y compílalo. El resultado aparece en `dist_instalador`. El instalador muestra la licencia GPLv3.
 
 Si redistribuyes un ejecutable, proporciona también su código fuente correspondiente, los archivos de compilación y las licencias aplicables a los componentes incluidos. Publica los cambios de código que hayas realizado, y no solo un enlace a una versión anterior del proyecto.
+
+## Firma de desarrollo
+
+El mantenedor firma localmente la aplicación y el instalador con un certificado autofirmado. El certificado público y su huella están disponibles en [`certificates/`](certificates/). La clave privada no se publica. Esta firma no garantiza que desaparezca el aviso de SmartScreen. Consulta [cómo compilar, firmar y verificar una descarga](docs/SIGNING.md).
 
 ## Contribuir
 
