@@ -35,16 +35,30 @@ La distribución es para **Windows de 64 bits**. El ejecutable está empaquetado
 
 ## Uso básico
 
-**Un enlace:** pégalo en *Descarga Individual*, pulsa **Buscar**, elige video o audio, selecciona la calidad y la carpeta, y pulsa **Iniciar Descarga**.
+**Un enlace:** en *Un enlace*, pega el enlace y pulsa **Analizar** (o Intro). Verás la miniatura, el título y la duración. En el panel derecho elige video o audio, la calidad y la carpeta, y pulsa **Descargar**.
 
-**Varios enlaces:** abre la pestaña de lotes y pega un enlace por línea. La aplicación los procesa en una cola.
+**Varios enlaces:** cambia a *Cola por lote* y pega un enlace por línea. La aplicación los procesa uno tras otro con las opciones del panel derecho.
 
-Las cookies del navegador son opcionales y están desactivadas inicialmente. Puedes elegir un navegador si el sitio necesita una sesión disponible en tu equipo.
+### Contenido privado o con restricción (+18)
+
+Las cookies son opcionales y están desactivadas al principio. Hacen falta para descargar lo que solo ve tu cuenta: tus playlists privadas, videos privados que te han compartido, contenido +18 o solo para miembros. Cada persona usa su propia sesión en su propio equipo; con ellas no se puede ver contenido privado de otra cuenta.
+
+En **Cookies (+18 / Sesión)** puedes elegir:
+
+- **Archivo cookies.txt…** (recomendado, sirve con cualquier navegador):
+  1. Instala en tu navegador una extensión que exporte cookies en formato Netscape, por ejemplo *Get cookies.txt LOCALLY*.
+  2. Entra en youtube.com con tu cuenta iniciada y exporta las cookies a un archivo `.txt`.
+  3. En la aplicación elige **Archivo cookies.txt…** y selecciona ese archivo. La aplicación lo recuerda para la próxima vez.
+- **Un navegador**: la aplicación lee las cookies directamente. Firefox suele funcionar; Chrome, Edge, Brave y Opera cifran sus cookies y a menudo no se pueden leer, aunque el navegador esté cerrado.
+
+Si buscas una playlist privada sin cookies, la aplicación te ofrece usar tu sesión y vuelve a intentarlo.
+
+El archivo de cookies da acceso a tu cuenta: guárdalo solo en tu equipo, no lo compartas y vuelve a exportarlo si deja de funcionar (las cookies caducan). La elección se guarda en `%LOCALAPPDATA%\UniversalDownloader\config.json`.
 
 ## Notas de funcionamiento
 
 - La compatibilidad con sitios puede cambiar. Actualizar el motor puede ayudar, pero no garantiza que todos los enlaces funcionen.
-- El mensaje final de la cola indica que terminó el procesamiento; en esta versión no garantiza que todos los archivos se hayan descargado. Comprueba la carpeta de destino.
+- Si algún elemento de la cola falla, el mensaje final lo indica y explica el motivo (contenido privado, cookies ilegibles, video no disponible, sin conexión…).
 - La distribución utiliza una firma de desarrollo con certificado autofirmado. Windows puede mostrar un aviso porque el certificado no pertenece a un editor validado por una autoridad certificadora. Consulta la [información de firma](docs/SIGNING.md).
 - El instalador incorpora la licencia GPLv3. No se ha realizado una prueba de descarga de cada plataforma para esta publicación.
 

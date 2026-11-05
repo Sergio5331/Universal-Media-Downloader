@@ -45,6 +45,59 @@ calidades_audio = ["320 kbps (Alta)", "192 kbps (Media)", "128 kbps (Básica)"]
 enlace_actual_idx = 0
 total_enlaces_cola = 1
 
+# --- Cookies de sesión (navegador o archivo cookies.txt) y preferencias guardadas ---
+
+OPCION_ARCHIVO_COOKIES = "Archivo cookies.txt…"
+NAVEGADORES_COOKIES = ["Chrome", "Edge", "Firefox", "Brave", "Opera"]
+OPCIONES_COOKIES = ["Desactivado"] + NAVEGADORES_COOKIES + [OPCION_ARCHIVO_COOKIES]
+CONFIG_PATH = os.path.join(APPDATA_DIR, 'UniversalDownloader', 'config.json')
+
+
+def cargar_config():
+    try:
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            datos = json.load(f)
+        return datos if isinstance(datos, dict) else {}
+    except Exception:
+        return {}
+
+
+def guardar_config():
+    try:
+        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+config = cargar_config()
+
+
+def es_archivo_cookies_valido(ruta):
+    """Comprueba que el archivo tenga el formato Netscape que usa yt-dlp."""
+    try:
+        with open(ruta, 'r', encoding='utf-8', errors='ignore') as f:
+            for i, linea in enumerate(f):
+                if i > 200:
+                    break
+                if "Netscape HTTP Cookie File" in linea:
+                    return True
+                if not linea.startswith('#') and len(linea.rstrip('\r\n').split('\t')) == 7:
+                    return True
+    except Exception:
+        return False
+    return False
+
+
+def aplicar_cookies(opciones, seleccion):
+    """Añade a las opciones de yt-dlp las cookies elegidas por el usuario."""
+    if seleccion == OPCION_ARCHIVO_COOKIES:
+        ruta = config.get('cookies_archivo')
+        if ruta and os.path.isfile(ruta):
+            opciones['cookiefile'] = ruta
+    elif seleccion in NAVEGADORES_COOKIES:
+        opciones['cookiesfrombrowser'] = (seleccion.lower(),)
+
 # --- 3. Actualizador Automático del Motor ---
 
 def parse_version(v_str):
@@ -149,6 +202,203 @@ def detectar_plataforma(url):
         return "Twitch 🟣"
     return f"Enlace Web / Multiplataforma 🌐{tipo_extra}"
 
+ESTADOS_NECESITAN_SESION = (
+    "❌ Playlist privada o inexistente",
+    "❌ Video privado",
+    "❌ Video con restricción de edad",
+    "❌ YouTube pide verificación",
+    "❌ Contenido solo para miembros",
+)
+ESTADO_COOKIES_ILEGIBLES = "❌ No se pudieron leer las cookies"
+
+
+def explicar_error(error, con_cookies=False):
+    """Traduce un error de yt-dlp a (estado corto, explicación para el usuario)."""
+    texto = re.sub(r'\x1b\[[0-9;]*m', '', str(error)).strip()
+    texto = re.sub(r'^ERROR:\s*', '', texto)
+    t = texto.lower()
+    if con_cookies:
+        usa_cookies = ("Ya estás usando cookies, pero esta cuenta no tiene acceso: comprueba que sean de la cuenta "
+                       "correcta y que no hayan caducado (vuelve a exportar el archivo cookies.txt).")
+    else:
+        usa_cookies = ("Usa tu sesión en 'Cookies (+18 / Sesión)': elige 'Archivo cookies.txt…' (lo más fiable) "
+                       "o Firefox, donde tengas tu cuenta de YouTube iniciada.")
+
+    if "playlist does not exist" in t:
+        return ("❌ Playlist privada o inexistente",
+                "YouTube dice que esta playlist no existe.\n\n"
+                "Lo más habitual es que sea PRIVADA: solo la puede ver quien tiene la sesión iniciada.\n\n"
+                f"• {usa_cookies}\n"
+                "• O cambia la visibilidad de la lista a 'Oculta' en YouTube.\n"
+                "• Si es de otra persona y no te la ha compartido, solo ella puede descargarla.")
+    if "cookie" in t and ("could not copy" in t or "permission denied" in t or "failed to decrypt" in t
+                          or "could not find" in t or "database" in t or "dpapi" in t):
+        return (ESTADO_COOKIES_ILEGIBLES,
+                "No se pudieron leer las cookies del navegador elegido.\n\n"
+                "• Chrome, Edge, Brave y Opera cifran sus cookies y a menudo no se pueden leer desde fuera.\n"
+                "• Usa 'Archivo cookies.txt…' (funciona con cualquier navegador) o Firefox.\n"
+                "• Si quieres seguir con este navegador, ciérralo por completo y vuelve a intentarlo.")
+    if "private video" in t or "video is private" in t:
+        return ("❌ Video privado",
+                f"Este video es privado.\n\n• {usa_cookies}")
+    if "confirm your age" in t or "age-restricted" in t or "inappropriate for some users" in t:
+        return ("❌ Video con restricción de edad",
+                f"Este video tiene restricción de edad (+18).\n\n• {usa_cookies}")
+    if "not a bot" in t:
+        return ("❌ YouTube pide verificación",
+                f"YouTube pide confirmar que no eres un bot.\n\n• {usa_cookies}")
+    if "members-only" in t or "join this channel" in t:
+        return ("❌ Contenido solo para miembros",
+                f"Este contenido es solo para miembros del canal.\n\n• {usa_cookies}")
+    if "unsupported url" in t:
+        return ("❌ Enlace no compatible",
+                "Este enlace no es compatible. Copia el enlace directo del video o de la playlist.")
+    if "video unavailable" in t or "video is unavailable" in t or "is not available" in t or "has been removed" in t:
+        return ("❌ Video no disponible",
+                "El video no está disponible: se eliminó, está bloqueado en tu país o el enlace es incorrecto.")
+    if any(c in t for c in ("getaddrinfo", "timed out", "connection", "network is unreachable", "unable to download webpage")):
+        return ("❌ Sin conexión",
+                "No se pudo conectar. Revisa tu conexión a internet y vuelve a intentarlo.")
+    return ("❌ Error al analizar el enlace",
+            f"No se pudo obtener información:\n{texto}")
+
+
+class RegistroErrores:
+    """Logger para yt-dlp que guarda los errores en lugar de perderlos."""
+    def __init__(self):
+        self.errores = []
+
+    def debug(self, msg):
+        pass
+
+    def info(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        self.errores.append(msg)
+
+
+def actualizar_lbl_archivo_cookies():
+    ruta = config.get('cookies_archivo')
+    if combo_cookies.get() == OPCION_ARCHIVO_COOKIES and ruta:
+        lbl_archivo_cookies.configure(text=f"Archivo: {os.path.basename(ruta)}")
+        lbl_archivo_cookies.pack(side="right")
+    else:
+        lbl_archivo_cookies.pack_forget()
+
+
+def elegir_archivo_cookies():
+    """Pide el archivo cookies.txt, lo valida y lo recuerda. Devuelve True si quedó configurado."""
+    ruta = filedialog.askopenfilename(
+        title="Elige tu archivo cookies.txt",
+        filetypes=[("Archivo de cookies", "*.txt"), ("Todos los archivos", "*.*")]
+    )
+    if not ruta:
+        return False
+    if not es_archivo_cookies_valido(ruta):
+        messagebox.showerror(
+            "Archivo no válido",
+            "Este archivo no tiene el formato de cookies que se necesita (Netscape).\n\n"
+            "Expórtalo con una extensión como 'Get cookies.txt LOCALLY' estando en youtube.com "
+            "con tu cuenta iniciada."
+        )
+        return False
+    config['cookies_archivo'] = ruta
+    guardar_config()
+    return True
+
+
+def establecer_cookies(seleccion):
+    """Cambia la opción de cookies (pidiendo el archivo si hace falta) y la recuerda."""
+    if seleccion == OPCION_ARCHIVO_COOKIES and not elegir_archivo_cookies():
+        seleccion = config.get('cookies', "Desactivado")
+        if seleccion == OPCION_ARCHIVO_COOKIES and not config.get('cookies_archivo'):
+            seleccion = "Desactivado"
+    combo_cookies.set(seleccion)
+    config['cookies'] = seleccion
+    guardar_config()
+    actualizar_lbl_archivo_cookies()
+    return seleccion
+
+
+def ofrecer_sesion(motivo):
+    """Ventana que ofrece usar la sesión del usuario y reintenta el análisis al elegir."""
+    ventana = ctk.CTkToplevel(root, fg_color=COLOR['fondo'])
+    ventana.title("Se necesita tu sesión")
+    ventana.geometry("460x330")
+    ventana.resizable(False, False)
+    ventana.transient(root)
+    ventana.after(100, ventana.grab_set)
+    try:
+        if os.path.exists(ICONO_PATH):
+            ventana.after(200, lambda: ventana.iconbitmap(ICONO_PATH))
+    except Exception:
+        pass
+
+    caja = tarjeta(ventana)
+    caja.pack(fill="both", expand=True, padx=16, pady=16)
+
+    ctk.CTkLabel(caja, text=f"  {motivo}  ", height=24, corner_radius=12, fg_color=COLOR['panel2'],
+                 text_color=COLOR['negativo'], font=fuente(11, "bold")).pack(anchor="w", padx=20, pady=(18, 10))
+    ctk.CTkLabel(caja, text="Usa tu sesión de YouTube para descargarlo", font=fuente(16, "bold"),
+                 text_color=COLOR['texto']).pack(anchor="w", padx=20)
+    ctk.CTkLabel(caja, text="Solo funciona con contenido que tu cuenta puede ver. "
+                            "Las cookies se leen en este equipo y no se envían a ningún otro sitio.",
+                 wraplength=390, justify="left", font=fuente(12), text_color=COLOR['suave']
+                 ).pack(anchor="w", padx=20, pady=(4, 14))
+
+    def usar(seleccion):
+        ventana.destroy()
+        if establecer_cookies(seleccion) != "Desactivado":
+            cargar_info_video()
+
+    ctk.CTkButton(caja, text="USAR ARCHIVO COOKIES.TXT", height=42, corner_radius=21,
+                  fg_color=COLOR['acento'], hover_color=COLOR['acento_hover'],
+                  text_color=COLOR['sobre_acento'], font=fuente(13, "bold"),
+                  command=lambda: usar(OPCION_ARCHIVO_COOKIES)).pack(fill="x", padx=20)
+
+    fila = ctk.CTkFrame(caja, fg_color="transparent")
+    fila.pack(fill="x", padx=20, pady=(10, 0))
+    ctk.CTkLabel(fila, text="O del navegador", font=fuente(12), text_color=COLOR['suave']).pack(side="left")
+    ctk.CTkButton(fila, text="USAR", width=70, height=34, corner_radius=17, **ESTILO_BOTON_SECUNDARIO,
+                  command=lambda: usar(menu_nav.get())).pack(side="right")
+    menu_nav = ctk.CTkOptionMenu(fila, values=NAVEGADORES_COOKIES, **dict(ESTILO_MENU, width=130))
+    menu_nav.set("Firefox")
+    menu_nav.pack(side="right", padx=8)
+
+    ctk.CTkButton(caja, text="AHORA NO", height=32, corner_radius=16, fg_color="transparent",
+                  hover_color=COLOR['panel2'], text_color=COLOR['suave'], font=fuente(12),
+                  command=ventana.destroy).pack(fill="x", padx=20, pady=(12, 16))
+
+
+TAM_MINIATURA = (288, 162)
+
+
+def mejor_miniatura(datos):
+    """URL de la miniatura de un video o de una entrada plana de playlist."""
+    if datos.get('thumbnail'):
+        return datos['thumbnail']
+    miniaturas = [m for m in (datos.get('thumbnails') or []) if isinstance(m, dict) and m.get('url')]
+    if not miniaturas:
+        return None
+    return max(miniaturas, key=lambda m: (m.get('width') or 0) * (m.get('height') or 0))['url']
+
+
+def preparar_miniatura(img):
+    """Recorta a 16:9 y redondea las esquinas sobre el color de la tarjeta (al doble de tamaño para pantallas HiDPI)."""
+    from PIL import ImageDraw, ImageOps
+    ancho, alto = TAM_MINIATURA[0] * 2, TAM_MINIATURA[1] * 2
+    img = ImageOps.fit(img.convert("RGB"), (ancho, alto), Image.LANCZOS)
+    mascara = Image.new("L", (ancho, alto), 0)
+    ImageDraw.Draw(mascara).rounded_rectangle((0, 0, ancho - 1, alto - 1), radius=24, fill=255)
+    fondo = Image.new("RGB", (ancho, alto), COLOR['panel'])
+    fondo.paste(img, (0, 0), mascara)
+    return fondo
+
+
 def seleccionar_carpeta():
     carpeta = filedialog.askdirectory()
     if carpeta:
@@ -162,7 +412,7 @@ def cambiar_tipo(seleccion):
     else:
         menu_calidad.configure(values=calidades_audio)
         menu_calidad.set(calidades_audio[0])
-        switch_metadata.pack(anchor="w", padx=16, pady=(0, 4))
+        switch_metadata.pack(anchor="w", pady=(10, 0))
 
 def pegar_portapapeles_individual():
     try:
@@ -183,7 +433,7 @@ def pegar_portapapeles_lote():
 
 def actualizar_contador_lote(*args):
     lineas = [l.strip() for l in txt_lote.get("1.0", "end").splitlines() if l.strip().startswith("http")]
-    lbl_contador_lote.configure(text=f"Total de enlaces detectados: {len(lineas)}")
+    lbl_contador_lote.configure(text=f"{len(lineas)} enlace(s) en cola")
 
 # --- 5. Análisis del Enlace (Modo Individual) ---
 
@@ -194,7 +444,7 @@ def cargar_info_video():
         return
 
     plataforma = detectar_plataforma(url)
-    lbl_plataforma.configure(text=f"Plataforma: {plataforma}")
+    lbl_plataforma.configure(text=f"  {plataforma}  ")
 
     if "list=" in url.lower() or "/playlist" in url.lower():
         switch_playlist.select()
@@ -214,8 +464,7 @@ def cargar_info_video():
                 'extract_flat': 'in_playlist' if es_modo_playlist else False,
                 'noplaylist': not es_modo_playlist
             }
-            if navegador_cookies != "Desactivado":
-                opciones_info['cookiesfrombrowser'] = (navegador_cookies.lower(),)
+            aplicar_cookies(opciones_info, navegador_cookies)
 
             with yt_dlp.YoutubeDL(opciones_info) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -226,15 +475,13 @@ def cargar_info_video():
                 titulo = info.get('title', 'Lista de reproducción')
                 total_items = len(list(info.get('entries', []))) or info.get('playlist_count', 'Varios')
                 tiempo_str = f"{total_items} videos / audios"
-                miniatura_url = None
+                miniatura_url = mejor_miniatura(info)
                 entries = list(info.get('entries', []))
-                if entries and isinstance(entries[0], dict):
-                    miniatura_url = entries[0].get('thumbnail')
+                if not miniatura_url and entries and isinstance(entries[0], dict):
+                    miniatura_url = mejor_miniatura(entries[0])
                 calidades_video_actuales = ["Mejor disponible"]
             else:
                 titulo = info.get('title', 'Video sin título')
-                if len(titulo) > 75:
-                    titulo = titulo[:72] + "..."
 
                 duracion = info.get('duration')
                 if duracion:
@@ -279,18 +526,21 @@ def cargar_info_video():
                     )
                     with urllib.request.urlopen(req, timeout=5) as resp:
                         datos_img = resp.read()
-                    img_pil = Image.open(BytesIO(datos_img))
-                    img_ctk = ctk.CTkImage(light_image=img_pil, dark_image=img_pil, size=(200, 112))
+                    img_pil = preparar_miniatura(Image.open(BytesIO(datos_img)))
+                    img_ctk = ctk.CTkImage(light_image=img_pil, dark_image=img_pil, size=TAM_MINIATURA)
                 except Exception:
                     img_ctk = None
 
+            es_lista = es_contenedor and es_modo_playlist
+            titulo_corto = titulo if len(titulo) <= 90 else titulo[:87] + "..."
+
             def actualizar_ui():
-                prefix_tipo = "📂 Playlist: " if (es_contenedor and es_modo_playlist) else ""
-                lbl_titulo.configure(text=f"{prefix_tipo}{titulo}\n\n⏱ Duración/Total: {tiempo_str}")
+                lbl_titulo.configure(text=titulo_corto)
+                lbl_meta.configure(text=f"Playlist  ·  {tiempo_str}" if es_lista else f"Duración  ·  {tiempo_str}")
                 if img_ctk:
-                    lbl_miniatura.configure(image=img_ctk, text="")
+                    lbl_miniatura.configure(image=img_ctk, text="", fg_color="transparent")
                 else:
-                    lbl_miniatura.configure(image=None, text="Vista previa\nno disponible")
+                    lbl_miniatura.configure(image=None, text="Vista previa\nno disponible", fg_color=COLOR['panel2'])
 
                 if seg_tipo.get() == "Video (MP4)":
                     menu_calidad.configure(values=calidades_video_actuales)
@@ -303,10 +553,23 @@ def cargar_info_video():
             root.after(0, actualizar_ui)
 
         except Exception as e:
+            con_cookies = navegador_cookies != "Desactivado"
+            estado, detalle = explicar_error(e, con_cookies=con_cookies)
             def mostrar_error():
-                lbl_estado.configure(text="❌ Error al analizar el enlace")
+                lbl_estado.configure(text=estado)
                 btn_buscar.configure(state="normal")
-                messagebox.showerror("Error", f"No se pudo obtener información:\n{e}\n\nConsejo: Si el video tiene restricción (+18) o es privado, selecciona tu navegador en 'Cookies de sesión'.")
+                if estado in ESTADOS_NECESITAN_SESION and not con_cookies:
+                    ofrecer_sesion(estado.replace("❌ ", ""))
+                elif estado == ESTADO_COOKIES_ILEGIBLES and navegador_cookies in NAVEGADORES_COOKIES:
+                    if messagebox.askyesno(
+                        "No se pudieron leer las cookies",
+                        f"No se pudieron leer las cookies de {navegador_cookies}.\n\n"
+                        "¿Quieres usar un archivo cookies.txt en su lugar? Funciona con cualquier navegador."
+                    ):
+                        if establecer_cookies(OPCION_ARCHIVO_COOKIES) == OPCION_ARCHIVO_COOKIES:
+                            cargar_info_video()
+                else:
+                    messagebox.showerror("Error", detalle)
             root.after(0, mostrar_error)
 
     threading.Thread(target=_tarea_info, daemon=True).start()
@@ -333,7 +596,7 @@ def hook_progreso(d):
 
 def ejecutar_descargas():
     global enlace_actual_idx, total_enlaces_cola
-    modo_pestana = tabview.get()
+    modo_pestana = seg_modo.get()
     carpeta = ruta_var.get()
     tipo = seg_tipo.get()
     calidad = menu_calidad.get()
@@ -341,7 +604,7 @@ def ejecutar_descargas():
     incrustar_tags = switch_metadata.get() == 1
     navegador_cookies = combo_cookies.get()
 
-    if modo_pestana == "Descarga Individual":
+    if modo_pestana == MODO_INDIVIDUAL:
         url_ind = url_entry.get().strip()
         if not url_ind:
             messagebox.showwarning("Aviso", "Por favor introduce un enlace antes de descargar.")
@@ -357,6 +620,7 @@ def ejecutar_descargas():
         lista_urls = lineas
 
     total_enlaces_cola = len(lista_urls)
+    fallos = []  # (url, mensaje de error)
 
     for idx, url in enumerate(lista_urls, start=1):
         enlace_actual_idx = idx
@@ -368,16 +632,17 @@ def ejecutar_descargas():
         else:
             plantilla_salida = os.path.join(carpeta, '%(title).90s [%(id)s].%(ext)s')
 
+        registro = RegistroErrores()
         opciones = {
             'outtmpl': plantilla_salida,
+            'logger': registro,
             'progress_hooks': [hook_progreso],
             'ffmpeg_location': FFMPEG_PATH,
             'noplaylist': not es_modo_playlist,
             'ignoreerrors': True,
         }
 
-        if navegador_cookies != "Desactivado":
-            opciones['cookiesfrombrowser'] = (navegador_cookies.lower(),)
+        aplicar_cookies(opciones, navegador_cookies)
 
         if tipo == "Solo Audio (MP3)":
             bitrate = "320" if "320" in calidad else ("128" if "128" in calidad else "192")
@@ -410,24 +675,101 @@ def ejecutar_descargas():
             with yt_dlp.YoutubeDL(opciones) as ydl:
                 ydl.download([url])
         except Exception as e:
-            print(f"Error procesando enlace {url}: {e}")
+            registro.errores.append(str(e))
 
-    lbl_estado.configure(text=f"✔ Completadas {total_enlaces_cola} descarga(s)")
-    messagebox.showinfo("Proceso Finalizado", f"Se procesaron los {total_enlaces_cola} enlace(s) correctamente en:\n{carpeta}")
-    btn_descargar.configure(state="normal")
-    btn_buscar.configure(state="normal")
+        for err in registro.errores:
+            fallos.append((url, err))
+
+    def finalizar():
+        btn_descargar.configure(state="normal")
+        btn_buscar.configure(state="normal")
+        if not fallos:
+            lbl_estado.configure(text=f"✔ Completadas {total_enlaces_cola} descarga(s)")
+            messagebox.showinfo("Proceso Finalizado", f"Se procesaron los {total_enlaces_cola} enlace(s) correctamente en:\n{carpeta}")
+            return
+
+        lbl_estado.configure(text=f"⚠ Terminado con {len(fallos)} error(es)")
+        # Agrupa los errores por explicación para no repetir el mismo consejo
+        explicaciones = {}
+        for _, err in fallos:
+            _, detalle = explicar_error(err, con_cookies=navegador_cookies != "Desactivado")
+            explicaciones[detalle] = explicaciones.get(detalle, 0) + 1
+        partes = []
+        for detalle, n in list(explicaciones.items())[:3]:
+            prefijo = f"({n} elemento(s))\n" if n > 1 else ""
+            partes.append(prefijo + detalle)
+        messagebox.showwarning(
+            "Proceso Finalizado con errores",
+            f"Algunos elementos no se pudieron descargar ({len(fallos)} error(es)).\n"
+            f"Lo que sí se descargó está en:\n{carpeta}\n\n" + "\n\n────────\n\n".join(partes)
+        )
+
+    root.after(0, finalizar)
 
 def iniciar_descarga():
+    progreso_bar.configure(progress_color=COLOR['acento'])
     btn_descargar.configure(state="disabled")
     btn_buscar.configure(state="disabled")
     threading.Thread(target=ejecutar_descargas, daemon=True).start()
 
 # --- 7. Interfaz Gráfica ---
 
-root = ctk.CTk()
-root.title("Universal Media Downloader Pro")
-root.geometry("630x840")
+COLOR = {
+    'fondo': "#121212",
+    'panel': "#181818",
+    'panel2': "#1F1F1F",
+    'borde': "#2A2A2A",
+    'borde_vivo': "#3E3E3E",
+    'texto': "#FFFFFF",
+    'suave': "#B3B3B3",
+    'acento': "#1ED760",
+    'acento_hover': "#3BE477",
+    'sobre_acento': "#000000",
+    'claro': "#FFFFFF",
+    'claro_hover': "#E6E6E6",
+    'negativo': "#F3727F",
+}
+FUENTE = "Segoe UI"
+MODO_INDIVIDUAL = "Un enlace"
+MODO_LOTE = "Cola por lote"
+
+
+def fuente(tam, peso="normal"):
+    return ctk.CTkFont(family=FUENTE, size=tam, weight=peso)
+
+
+def tarjeta(padre, **kw):
+    return ctk.CTkFrame(padre, fg_color=COLOR['panel'], corner_radius=10, border_width=0, **kw)
+
+
+def titulo_seccion(padre, texto):
+    return ctk.CTkLabel(padre, text=texto.upper(), font=fuente(11, "bold"), text_color=COLOR['suave'])
+
+
+# La ventana tiene que existir antes de crear fuentes
+root = ctk.CTk(fg_color=COLOR['fondo'])
+root.title("Universal Media Downloader")
+root.geometry("1000x640")
 root.resizable(False, False)
+
+ESTILO_BOTON_SECUNDARIO = dict(
+    fg_color=COLOR['panel2'], hover_color=COLOR['borde_vivo'], border_width=1,
+    border_color="#4D4D4D", text_color=COLOR['texto'], font=fuente(12, "bold"),
+)
+ESTILO_MENU = dict(
+    width=170, height=34, corner_radius=17, fg_color=COLOR['panel2'], button_color=COLOR['borde_vivo'],
+    button_hover_color="#4D4D4D", dropdown_fg_color=COLOR['panel2'],
+    dropdown_hover_color=COLOR['borde'], dropdown_text_color=COLOR['texto'],
+    text_color=COLOR['texto'], font=fuente(12), dropdown_font=fuente(12),
+)
+ESTILO_ENTRADA = dict(
+    corner_radius=17, fg_color=COLOR['panel2'], border_color=COLOR['borde_vivo'], border_width=1,
+    text_color=COLOR['texto'], placeholder_text_color=COLOR['suave'],
+)
+ESTILO_SWITCH = dict(
+    font=fuente(12), text_color=COLOR['texto'], progress_color=COLOR['acento'],
+    button_color="#FFFFFF", button_hover_color="#E6E6E6", fg_color=COLOR['borde'],
+)
 
 try:
     if os.path.exists(ICONO_PATH):
@@ -435,122 +777,229 @@ try:
 except Exception:
     pass
 
-# Encabezado
-lbl_app = ctk.CTkLabel(root, text="Descargador Universal de Medios", font=ctk.CTkFont(size=20, weight="bold"))
-lbl_app.pack(pady=(12, 2))
+# Cabecera: logotipo, nombre y estado del motor
+cabecera = ctk.CTkFrame(root, fg_color="transparent")
+cabecera.pack(fill="x", padx=24, pady=(20, 14))
 
-lbl_sub = ctk.CTkLabel(root, text="YouTube (+18) • Cola por Lote • TikTok • Instagram • X • Facebook", font=ctk.CTkFont(size=11), text_color="#888888")
-lbl_sub.pack(pady=(0, 6))
+lbl_logo = ctk.CTkLabel(cabecera, text="↓", width=46, height=46, corner_radius=23,
+                        fg_color=COLOR['acento'], text_color=COLOR['sobre_acento'], font=fuente(24, "bold"))
+lbl_logo.pack(side="left")
 
-# Pestañas
-tabview = ctk.CTkTabview(root, width=590, height=210)
-tabview.pack(padx=20, pady=4)
-
-tab_ind = tabview.add("Descarga Individual")
-tab_lote = tabview.add("Cola por Lote (Enlaces Múltiples)")
-
-# Pestaña 1
-frame_url = ctk.CTkFrame(tab_ind, fg_color="transparent")
-frame_url.pack(fill="x", pady=(2, 4))
-
-url_entry = ctk.CTkEntry(frame_url, placeholder_text="Pega aquí el enlace del video o playlist...", font=ctk.CTkFont(size=12), height=34)
-url_entry.pack(side="left", fill="x", expand=True, padx=(0, 6))
-
-btn_pegar = ctk.CTkButton(frame_url, text="📋 Pegar", width=70, height=34, command=pegar_portapapeles_individual)
-btn_pegar.pack(side="left", padx=3)
-
-btn_buscar = ctk.CTkButton(frame_url, text="🔍 Buscar", width=75, height=34, fg_color="#1f538d", hover_color="#14375e", command=cargar_info_video)
-btn_buscar.pack(side="left")
-
-card_preview = ctk.CTkFrame(tab_ind, corner_radius=10, height=115)
-card_preview.pack(fill="x", pady=4)
-
-lbl_miniatura = ctk.CTkLabel(card_preview, text="Sin miniatura", width=200, height=112, fg_color="#2b2b2b", corner_radius=8)
-lbl_miniatura.pack(side="left", padx=8, pady=8)
-
-lbl_titulo = ctk.CTkLabel(card_preview, text="Pega un enlace y presiona 'Buscar'\npara obtener vista previa y calidades.", wraplength=270, justify="left", font=ctk.CTkFont(size=12))
-lbl_titulo.pack(side="left", fill="both", expand=True, padx=(4, 8), pady=8)
-
-# Pestaña 2
-txt_lote = ctk.CTkTextbox(tab_lote, height=110, font=ctk.CTkFont(size=12))
-txt_lote.pack(fill="both", expand=True, padx=4, pady=(2, 4))
-txt_lote.bind("<KeyRelease>", actualizar_contador_lote)
-
-frame_btn_lote = ctk.CTkFrame(tab_lote, fg_color="transparent")
-frame_btn_lote.pack(fill="x", padx=4, pady=(0, 2))
-
-btn_pegar_lote = ctk.CTkButton(frame_btn_lote, text="📋 Pegar enlaces copiados", height=28, command=pegar_portapapeles_lote)
-btn_pegar_lote.pack(side="left")
-
-lbl_contador_lote = ctk.CTkLabel(frame_btn_lote, text="Total de enlaces detectados: 0", font=ctk.CTkFont(size=12, weight="bold"), text_color="#3B8ED0")
-lbl_contador_lote.pack(side="right")
-
-lbl_plataforma = ctk.CTkLabel(root, text="Modo: Listo para recibir descargas", font=ctk.CTkFont(size=12, weight="bold"), text_color="#3B8ED0")
-lbl_plataforma.pack(pady=(2, 4))
-
-# Opciones de Descarga
-card_config = ctk.CTkFrame(root, corner_radius=12)
-card_config.pack(fill="x", padx=20, pady=4)
-
-seg_tipo = ctk.CTkSegmentedButton(card_config, values=["Video (MP4)", "Solo Audio (MP3)"], command=cambiar_tipo, font=ctk.CTkFont(size=13, weight="bold"))
-seg_tipo.set("Video (MP4)")
-seg_tipo.pack(fill="x", padx=15, pady=(10, 6))
-
-switch_playlist = ctk.CTkSwitch(card_config, text="Descargar playlist completa (si el enlace es de una lista)", font=ctk.CTkFont(size=12))
-switch_playlist.pack(anchor="w", padx=16, pady=(0, 4))
-
-switch_metadata = ctk.CTkSwitch(card_config, text="🏷️ Incrustar carátula y artista en archivos MP3", font=ctk.CTkFont(size=12))
-switch_metadata.select()
-
-frame_filas = ctk.CTkFrame(card_config, fg_color="transparent")
-frame_filas.pack(fill="x", padx=15, pady=4)
-
-ctk.CTkLabel(frame_filas, text="Calidad de salida:", font=ctk.CTkFont(size=13)).grid(row=0, column=0, sticky="w", pady=2)
-menu_calidad = ctk.CTkOptionMenu(frame_filas, values=calidades_video_actuales, width=170)
-menu_calidad.grid(row=0, column=1, sticky="e", padx=(10, 0), pady=2)
-
-ctk.CTkLabel(frame_filas, text="Cookies (+18 / Sesión):", font=ctk.CTkFont(size=13)).grid(row=1, column=0, sticky="w", pady=4)
-combo_cookies = ctk.CTkOptionMenu(frame_filas, values=["Desactivado", "Chrome", "Edge", "Firefox", "Brave", "Opera"], width=170)
-combo_cookies.set("Desactivado")
-combo_cookies.grid(row=1, column=1, sticky="e", padx=(10, 0), pady=4)
-frame_filas.grid_columnconfigure(0, weight=1)
-
-frame_ruta = ctk.CTkFrame(card_config, fg_color="transparent")
-frame_ruta.pack(fill="x", padx=15, pady=(4, 10))
-ruta_var = ctk.StringVar(value=os.path.expanduser("~/Downloads"))
-entry_ruta = ctk.CTkEntry(frame_ruta, textvariable=ruta_var, height=32)
-entry_ruta.pack(side="left", fill="x", expand=True, padx=(0, 8))
-btn_carpeta = ctk.CTkButton(frame_ruta, text="Examinar", width=85, height=32, command=seleccionar_carpeta)
-btn_carpeta.pack(side="right")
-
-# Progreso y Estado
-lbl_estado = ctk.CTkLabel(root, text="Listo para comenzar", font=ctk.CTkFont(size=12), text_color="#aaaaaa")
-lbl_estado.pack(pady=(4, 2))
-
-progreso_bar = ctk.CTkProgressBar(root, width=590, height=12)
-progreso_bar.set(0)
-progreso_bar.pack(pady=3)
-
-btn_descargar = ctk.CTkButton(root, text="⬇ Iniciar Descarga", height=44, font=ctk.CTkFont(size=15, weight="bold"), fg_color="#2e7d32", hover_color="#1b5e20", command=iniciar_descarga)
-btn_descargar.pack(fill="x", padx=20, pady=(6, 8))
-
-frame_footer = ctk.CTkFrame(root, height=34, corner_radius=8, fg_color="#1a1a1a")
-frame_footer.pack(fill="x", padx=20, pady=(0, 8))
-
-lbl_motor = ctk.CTkLabel(frame_footer, text="⚡ Motor: Iniciando...", font=ctk.CTkFont(size=11), text_color="#888888")
-lbl_motor.pack(side="left", padx=12, pady=4)
+bloque_titulo = ctk.CTkFrame(cabecera, fg_color="transparent")
+bloque_titulo.pack(side="left", padx=14)
+ctk.CTkLabel(bloque_titulo, text="Universal Media Downloader", font=fuente(20, "bold"),
+             text_color=COLOR['texto']).pack(anchor="w")
+ctk.CTkLabel(bloque_titulo, text="YouTube  ·  TikTok  ·  Instagram  ·  X  ·  Facebook  ·  Reddit  ·  Twitch",
+             font=fuente(12), text_color=COLOR['suave']).pack(anchor="w")
 
 btn_check_motor = ctk.CTkButton(
-    frame_footer,
-    text="🔄 Actualizar motor",
-    width=125,
-    height=24,
-    font=ctk.CTkFont(size=11),
-    fg_color="#2b2b2b",
-    hover_color="#3a3a3a",
+    cabecera, text="ACTUALIZAR MOTOR", width=150, height=34, corner_radius=17,
+    **ESTILO_BOTON_SECUNDARIO,
     command=lambda: verificar_actualizacion_motor(notificar_al_dia=True)
 )
-btn_check_motor.pack(side="right", padx=8, pady=4)
+btn_check_motor.pack(side="right")
+lbl_motor = ctk.CTkLabel(cabecera, text="Motor: iniciando…", font=fuente(12), text_color=COLOR['suave'])
+lbl_motor.pack(side="right", padx=14)
+
+# Cuerpo en dos columnas
+cuerpo = ctk.CTkFrame(root, fg_color="transparent")
+cuerpo.pack(fill="both", expand=True, padx=24, pady=(0, 22))
+cuerpo.grid_columnconfigure(0, weight=1)
+cuerpo.grid_columnconfigure(1, weight=0, minsize=340)
+cuerpo.grid_rowconfigure(0, weight=1)
+
+columna_izq = ctk.CTkFrame(cuerpo, fg_color="transparent")
+columna_izq.grid(row=0, column=0, sticky="nsew", padx=(0, 16))
+panel_der = tarjeta(cuerpo, width=340)
+panel_der.grid(row=0, column=1, sticky="nsew")
+
+
+def cambiar_modo(valor):
+    if valor == MODO_INDIVIDUAL:
+        frame_lote.pack_forget()
+        frame_individual.pack(fill="both", expand=True)
+    else:
+        frame_individual.pack_forget()
+        frame_lote.pack(fill="both", expand=True)
+
+
+seg_modo = ctk.CTkSegmentedButton(
+    columna_izq, values=[MODO_INDIVIDUAL, MODO_LOTE], command=cambiar_modo,
+    height=38, corner_radius=19, font=fuente(13, "bold"),
+    fg_color=COLOR['panel'], selected_color=COLOR['borde_vivo'], selected_hover_color=COLOR['borde_vivo'],
+    unselected_color=COLOR['panel'], unselected_hover_color=COLOR['panel2'],
+    text_color=COLOR['texto'], dynamic_resizing=False, width=300,
+)
+seg_modo.set(MODO_INDIVIDUAL)
+seg_modo.pack(anchor="w", pady=(0, 12))
+
+contenedor_modo = ctk.CTkFrame(columna_izq, fg_color="transparent")
+contenedor_modo.pack(fill="both", expand=True)
+frame_individual = ctk.CTkFrame(contenedor_modo, fg_color="transparent")
+frame_lote = ctk.CTkFrame(contenedor_modo, fg_color="transparent")
+frame_individual.pack(fill="both", expand=True)
+
+# Modo "Un enlace": barra de enlace
+card_url = tarjeta(frame_individual)
+card_url.pack(fill="x")
+titulo_seccion(card_url, "Enlace").pack(anchor="w", padx=18, pady=(14, 6))
+
+fila_url = ctk.CTkFrame(card_url, fg_color="transparent")
+fila_url.pack(fill="x", padx=18, pady=(0, 16))
+
+url_entry = ctk.CTkEntry(fila_url, placeholder_text="Pega el enlace de un video o de una playlist",
+                         height=44, font=fuente(13), **dict(ESTILO_ENTRADA, corner_radius=22))
+url_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+url_entry.bind("<Return>", lambda e: cargar_info_video())
+
+btn_pegar = ctk.CTkButton(fila_url, text="PEGAR", width=84, height=44, corner_radius=22,
+                          **ESTILO_BOTON_SECUNDARIO, command=pegar_portapapeles_individual)
+btn_pegar.pack(side="left", padx=(0, 8))
+
+btn_buscar = ctk.CTkButton(fila_url, text="ANALIZAR", width=110, height=44, corner_radius=22,
+                           fg_color=COLOR['claro'], hover_color=COLOR['claro_hover'],
+                           text_color=COLOR['sobre_acento'], text_color_disabled="#6A6A6A",
+                           font=fuente(13, "bold"), command=cargar_info_video)
+btn_buscar.pack(side="left")
+
+# Modo "Un enlace": vista previa
+card_preview = tarjeta(frame_individual)
+card_preview.pack(fill="both", expand=True, pady=(12, 0))
+
+# Pasos de ayuda a lo ancho, en la parte baja de la tarjeta
+pasos_ayuda = ctk.CTkFrame(card_preview, fg_color="transparent")
+pasos_ayuda.pack(side="bottom", fill="x", padx=18, pady=(0, 18))
+for _num, _texto in (("1", "Copia el enlace"), ("2", "Pulsa Analizar"), ("3", "Elige formato y descarga")):
+    _paso = ctk.CTkFrame(pasos_ayuda, fg_color=COLOR['panel2'], corner_radius=8)
+    _paso.pack(side="left", fill="x", expand=True, padx=(0, 8) if _num != "3" else 0)
+    ctk.CTkLabel(_paso, text=_num, width=22, height=22, corner_radius=11, fg_color=COLOR['borde_vivo'],
+                 text_color=COLOR['texto'], font=fuente(11, "bold")).pack(side="left", padx=(10, 8), pady=9)
+    ctk.CTkLabel(_paso, text=_texto, font=fuente(12), text_color=COLOR['suave']).pack(side="left", padx=(0, 10))
+
+fila_preview = ctk.CTkFrame(card_preview, fg_color="transparent")
+fila_preview.pack(side="top", fill="both", expand=True, padx=18, pady=18)
+
+lbl_miniatura = ctk.CTkLabel(fila_preview, text="Sin vista previa", width=TAM_MINIATURA[0],
+                             height=TAM_MINIATURA[1], corner_radius=8, fg_color=COLOR['panel2'],
+                             text_color=COLOR['suave'], font=fuente(12))
+lbl_miniatura.pack(side="left", anchor="n")
+
+info_preview = ctk.CTkFrame(fila_preview, fg_color="transparent")
+info_preview.pack(side="left", fill="both", expand=True, padx=(18, 0))
+
+lbl_plataforma = ctk.CTkLabel(info_preview, text="  Esperando enlace  ", height=24, corner_radius=12,
+                              fg_color=COLOR['borde_vivo'], text_color=COLOR['texto'],
+                              font=fuente(11, "bold"))
+lbl_plataforma.pack(anchor="w")
+
+lbl_titulo = ctk.CTkLabel(info_preview,
+                          text="Pega un enlace y pulsa Analizar para ver la vista previa y las calidades disponibles.",
+                          wraplength=240, justify="left", anchor="w", font=fuente(15, "bold"),
+                          text_color=COLOR['texto'])
+lbl_titulo.pack(anchor="w", fill="x", pady=(12, 6))
+
+lbl_meta = ctk.CTkLabel(info_preview, text="", justify="left", anchor="w", font=fuente(12),
+                        text_color=COLOR['suave'])
+lbl_meta.pack(anchor="w")
+
+# Modo "Cola por lote"
+card_lote = tarjeta(frame_lote)
+card_lote.pack(fill="both", expand=True)
+titulo_seccion(card_lote, "Cola de enlaces").pack(anchor="w", padx=18, pady=(14, 2))
+ctk.CTkLabel(card_lote, text="Un enlace por línea. Se descargan uno tras otro con las opciones de la derecha.",
+             font=fuente(12), text_color=COLOR['suave']).pack(anchor="w", padx=18)
+
+txt_lote = ctk.CTkTextbox(card_lote, corner_radius=8, fg_color=COLOR['panel2'], border_color=COLOR['borde_vivo'],
+                          border_width=1, text_color=COLOR['texto'], font=fuente(12))
+txt_lote.pack(fill="both", expand=True, padx=18, pady=12)
+txt_lote.bind("<KeyRelease>", actualizar_contador_lote)
+
+fila_lote = ctk.CTkFrame(card_lote, fg_color="transparent")
+fila_lote.pack(fill="x", padx=18, pady=(0, 16))
+
+btn_pegar_lote = ctk.CTkButton(fila_lote, text="PEGAR ENLACES COPIADOS", height=36, corner_radius=18,
+                               **ESTILO_BOTON_SECUNDARIO, command=pegar_portapapeles_lote)
+btn_pegar_lote.pack(side="left")
+
+lbl_contador_lote = ctk.CTkLabel(fila_lote, text="0 enlace(s) en cola", font=fuente(13, "bold"),
+                                 text_color=COLOR['texto'])
+lbl_contador_lote.pack(side="right")
+
+# Panel derecho: zona de acción (abajo) y opciones (arriba)
+zona_accion = ctk.CTkFrame(panel_der, fg_color="transparent")
+zona_accion.pack(side="bottom", fill="x", padx=20, pady=20)
+
+lbl_estado = ctk.CTkLabel(zona_accion, text="Listo para comenzar", font=fuente(12), text_color=COLOR['suave'],
+                          anchor="w", justify="left", wraplength=290)
+lbl_estado.pack(fill="x")
+
+# Sin color de progreso hasta la primera descarga, para que la barra vacía no muestre un punto
+progreso_bar = ctk.CTkProgressBar(zona_accion, height=8, corner_radius=4, fg_color=COLOR['panel2'],
+                                  progress_color=COLOR['panel2'])
+progreso_bar.set(0)
+progreso_bar.pack(fill="x", pady=(8, 14))
+
+btn_descargar = ctk.CTkButton(zona_accion, text="DESCARGAR", height=52, corner_radius=26,
+                              fg_color=COLOR['acento'], hover_color=COLOR['acento_hover'],
+                              text_color=COLOR['sobre_acento'], text_color_disabled="#1A5E33",
+                              font=fuente(16, "bold"), command=iniciar_descarga)
+btn_descargar.pack(fill="x")
+
+titulo_seccion(panel_der, "Formato").pack(anchor="w", padx=20, pady=(18, 6))
+seg_tipo = ctk.CTkSegmentedButton(
+    panel_der, values=["Video (MP4)", "Solo Audio (MP3)"], command=cambiar_tipo,
+    height=38, corner_radius=19, font=fuente(13, "bold"),
+    fg_color=COLOR['panel2'], selected_color=COLOR['borde_vivo'], selected_hover_color=COLOR['borde_vivo'],
+    unselected_color=COLOR['panel2'], unselected_hover_color=COLOR['borde'], text_color=COLOR['texto'],
+)
+seg_tipo.set("Video (MP4)")
+seg_tipo.pack(fill="x", padx=20)
+
+
+def fila_opcion(texto, pady=(12, 0)):
+    fila = ctk.CTkFrame(panel_der, fg_color="transparent")
+    fila.pack(fill="x", padx=20, pady=pady)
+    ctk.CTkLabel(fila, text=texto, font=fuente(13), text_color=COLOR['texto']).pack(side="left")
+    return fila
+
+
+menu_calidad = ctk.CTkOptionMenu(fila_opcion("Calidad", pady=(14, 0)), values=calidades_video_actuales,
+                                 **ESTILO_MENU)
+menu_calidad.pack(side="right")
+
+combo_cookies = ctk.CTkOptionMenu(fila_opcion("Sesión"), values=OPCIONES_COOKIES,
+                                  command=establecer_cookies, **ESTILO_MENU)
+combo_cookies.pack(side="right")
+
+fila_archivo_cookies = ctk.CTkFrame(panel_der, fg_color="transparent", height=18)
+fila_archivo_cookies.pack(fill="x", padx=20, pady=(4, 0))
+lbl_archivo_cookies = ctk.CTkLabel(fila_archivo_cookies, text="", height=16, font=fuente(11),
+                                   text_color=COLOR['suave'])
+
+# Recupera la última elección de cookies (si el archivo ya no existe, vuelve a Desactivado)
+_cookies_guardadas = config.get('cookies', "Desactivado")
+if _cookies_guardadas not in OPCIONES_COOKIES or (
+        _cookies_guardadas == OPCION_ARCHIVO_COOKIES and not os.path.isfile(config.get('cookies_archivo') or "")):
+    _cookies_guardadas = "Desactivado"
+combo_cookies.set(_cookies_guardadas)
+actualizar_lbl_archivo_cookies()
+
+frame_switches = ctk.CTkFrame(panel_der, fg_color="transparent")
+frame_switches.pack(fill="x", padx=20, pady=(10, 0))
+switch_playlist = ctk.CTkSwitch(frame_switches, text="Descargar la playlist completa", **ESTILO_SWITCH)
+switch_playlist.pack(anchor="w")
+switch_metadata = ctk.CTkSwitch(frame_switches, text="Incrustar carátula y artista en el MP3", **ESTILO_SWITCH)
+switch_metadata.select()
+
+titulo_seccion(panel_der, "Guardar en").pack(anchor="w", padx=20, pady=(18, 6))
+frame_ruta = ctk.CTkFrame(panel_der, fg_color="transparent")
+frame_ruta.pack(fill="x", padx=20)
+ruta_var = ctk.StringVar(value=os.path.expanduser("~/Downloads"))
+entry_ruta = ctk.CTkEntry(frame_ruta, textvariable=ruta_var, height=34, font=fuente(12), **ESTILO_ENTRADA)
+entry_ruta.pack(side="left", fill="x", expand=True, padx=(0, 8))
+btn_carpeta = ctk.CTkButton(frame_ruta, text="CAMBIAR", width=92, height=34, corner_radius=17,
+                            **ESTILO_BOTON_SECUNDARIO, command=seleccionar_carpeta)
+btn_carpeta.pack(side="right")
 
 root.after(1000, lambda: verificar_actualizacion_motor(notificar_al_dia=False))
 
