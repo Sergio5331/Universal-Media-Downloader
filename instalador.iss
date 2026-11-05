@@ -1,10 +1,10 @@
-﻿[Setup]
+[Setup]
 AppName=Universal Media Downloader Pro
-AppVersion=1.1.0
-AppVerName=Universal Media Downloader Pro 1.1.0
-VersionInfoVersion=1.1.0.0
+AppVersion=1.1.1
+AppVerName=Universal Media Downloader Pro 1.1.1
+VersionInfoVersion=1.1.1.0
 VersionInfoProductName=Universal Media Downloader Pro
-VersionInfoProductVersion=1.1.0
+VersionInfoProductVersion=1.1.1
 VersionInfoDescription=Instalador de Universal Media Downloader Pro
 AppPublisher=Sergio
 ; SPDX-License-Identifier: GPL-3.0-only
@@ -13,7 +13,7 @@ DefaultDirName={autopf}\Universal Media Downloader
 DefaultGroupName=Universal Media Downloader
 UninstallDisplayIcon={app}\app_descargador.exe
 OutputDir=dist_instalador
-OutputBaseFilename=Instalador_UniversalDownloader_v1.1
+OutputBaseFilename=Instalador_UniversalDownloader_v1.1.1
 SetupIconFile=icono.ico
 Compression=lzma2/max
 SolidCompression=yes

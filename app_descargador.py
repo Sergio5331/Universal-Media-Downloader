@@ -45,59 +45,6 @@ calidades_audio = ["320 kbps (Alta)", "192 kbps (Media)", "128 kbps (Básica)"]
 enlace_actual_idx = 0
 total_enlaces_cola = 1
 
-# --- Cookies de sesión (navegador o archivo cookies.txt) y preferencias guardadas ---
-
-OPCION_ARCHIVO_COOKIES = "Archivo cookies.txt…"
-NAVEGADORES_COOKIES = ["Chrome", "Edge", "Firefox", "Brave", "Opera"]
-OPCIONES_COOKIES = ["Desactivado"] + NAVEGADORES_COOKIES + [OPCION_ARCHIVO_COOKIES]
-CONFIG_PATH = os.path.join(APPDATA_DIR, 'UniversalDownloader', 'config.json')
-
-
-def cargar_config():
-    try:
-        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-            datos = json.load(f)
-        return datos if isinstance(datos, dict) else {}
-    except Exception:
-        return {}
-
-
-def guardar_config():
-    try:
-        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-
-config = cargar_config()
-
-
-def es_archivo_cookies_valido(ruta):
-    """Comprueba que el archivo tenga el formato Netscape que usa yt-dlp."""
-    try:
-        with open(ruta, 'r', encoding='utf-8', errors='ignore') as f:
-            for i, linea in enumerate(f):
-                if i > 200:
-                    break
-                if "Netscape HTTP Cookie File" in linea:
-                    return True
-                if not linea.startswith('#') and len(linea.rstrip('\r\n').split('\t')) == 7:
-                    return True
-    except Exception:
-        return False
-    return False
-
-
-def aplicar_cookies(opciones, seleccion):
-    """Añade a las opciones de yt-dlp las cookies elegidas por el usuario."""
-    if seleccion == OPCION_ARCHIVO_COOKIES:
-        ruta = config.get('cookies_archivo')
-        if ruta and os.path.isfile(ruta):
-            opciones['cookiefile'] = ruta
-    elif seleccion in NAVEGADORES_COOKIES:
-        opciones['cookiesfrombrowser'] = (seleccion.lower(),)
-
 # --- 3. Actualizador Automático del Motor ---
 
 def parse_version(v_str):
@@ -202,178 +149,6 @@ def detectar_plataforma(url):
         return "Twitch 🟣"
     return f"Enlace Web / Multiplataforma 🌐{tipo_extra}"
 
-ESTADOS_NECESITAN_SESION = (
-    "❌ Playlist privada o inexistente",
-    "❌ Video privado",
-    "❌ Video con restricción de edad",
-    "❌ YouTube pide verificación",
-    "❌ Contenido solo para miembros",
-)
-ESTADO_COOKIES_ILEGIBLES = "❌ No se pudieron leer las cookies"
-
-
-def explicar_error(error, con_cookies=False):
-    """Traduce un error de yt-dlp a (estado corto, explicación para el usuario)."""
-    texto = re.sub(r'\x1b\[[0-9;]*m', '', str(error)).strip()
-    texto = re.sub(r'^ERROR:\s*', '', texto)
-    t = texto.lower()
-    if con_cookies:
-        usa_cookies = ("Ya estás usando cookies, pero esta cuenta no tiene acceso: comprueba que sean de la cuenta "
-                       "correcta y que no hayan caducado (vuelve a exportar el archivo cookies.txt).")
-    else:
-        usa_cookies = ("Usa tu sesión en 'Cookies (+18 / Sesión)': elige 'Archivo cookies.txt…' (lo más fiable) "
-                       "o Firefox, donde tengas tu cuenta de YouTube iniciada.")
-
-    if "playlist does not exist" in t:
-        return ("❌ Playlist privada o inexistente",
-                "YouTube dice que esta playlist no existe.\n\n"
-                "Lo más habitual es que sea PRIVADA: solo la puede ver quien tiene la sesión iniciada.\n\n"
-                f"• {usa_cookies}\n"
-                "• O cambia la visibilidad de la lista a 'Oculta' en YouTube.\n"
-                "• Si es de otra persona y no te la ha compartido, solo ella puede descargarla.")
-    if "cookie" in t and ("could not copy" in t or "permission denied" in t or "failed to decrypt" in t
-                          or "could not find" in t or "database" in t or "dpapi" in t):
-        return (ESTADO_COOKIES_ILEGIBLES,
-                "No se pudieron leer las cookies del navegador elegido.\n\n"
-                "• Chrome, Edge, Brave y Opera cifran sus cookies y a menudo no se pueden leer desde fuera.\n"
-                "• Usa 'Archivo cookies.txt…' (funciona con cualquier navegador) o Firefox.\n"
-                "• Si quieres seguir con este navegador, ciérralo por completo y vuelve a intentarlo.")
-    if "private video" in t or "video is private" in t:
-        return ("❌ Video privado",
-                f"Este video es privado.\n\n• {usa_cookies}")
-    if "confirm your age" in t or "age-restricted" in t or "inappropriate for some users" in t:
-        return ("❌ Video con restricción de edad",
-                f"Este video tiene restricción de edad (+18).\n\n• {usa_cookies}")
-    if "not a bot" in t:
-        return ("❌ YouTube pide verificación",
-                f"YouTube pide confirmar que no eres un bot.\n\n• {usa_cookies}")
-    if "members-only" in t or "join this channel" in t:
-        return ("❌ Contenido solo para miembros",
-                f"Este contenido es solo para miembros del canal.\n\n• {usa_cookies}")
-    if "unsupported url" in t:
-        return ("❌ Enlace no compatible",
-                "Este enlace no es compatible. Copia el enlace directo del video o de la playlist.")
-    if "video unavailable" in t or "video is unavailable" in t or "is not available" in t or "has been removed" in t:
-        return ("❌ Video no disponible",
-                "El video no está disponible: se eliminó, está bloqueado en tu país o el enlace es incorrecto.")
-    if any(c in t for c in ("getaddrinfo", "timed out", "connection", "network is unreachable", "unable to download webpage")):
-        return ("❌ Sin conexión",
-                "No se pudo conectar. Revisa tu conexión a internet y vuelve a intentarlo.")
-    return ("❌ Error al analizar el enlace",
-            f"No se pudo obtener información:\n{texto}")
-
-
-class RegistroErrores:
-    """Logger para yt-dlp que guarda los errores en lugar de perderlos."""
-    def __init__(self):
-        self.errores = []
-
-    def debug(self, msg):
-        pass
-
-    def info(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        self.errores.append(msg)
-
-
-def actualizar_lbl_archivo_cookies():
-    ruta = config.get('cookies_archivo')
-    if combo_cookies.get() == OPCION_ARCHIVO_COOKIES and ruta:
-        lbl_archivo_cookies.configure(text=f"Archivo: {os.path.basename(ruta)}")
-        lbl_archivo_cookies.pack(side="right")
-    else:
-        lbl_archivo_cookies.pack_forget()
-
-
-def elegir_archivo_cookies():
-    """Pide el archivo cookies.txt, lo valida y lo recuerda. Devuelve True si quedó configurado."""
-    ruta = filedialog.askopenfilename(
-        title="Elige tu archivo cookies.txt",
-        filetypes=[("Archivo de cookies", "*.txt"), ("Todos los archivos", "*.*")]
-    )
-    if not ruta:
-        return False
-    if not es_archivo_cookies_valido(ruta):
-        messagebox.showerror(
-            "Archivo no válido",
-            "Este archivo no tiene el formato de cookies que se necesita (Netscape).\n\n"
-            "Expórtalo con una extensión como 'Get cookies.txt LOCALLY' estando en youtube.com "
-            "con tu cuenta iniciada."
-        )
-        return False
-    config['cookies_archivo'] = ruta
-    guardar_config()
-    return True
-
-
-def establecer_cookies(seleccion):
-    """Cambia la opción de cookies (pidiendo el archivo si hace falta) y la recuerda."""
-    if seleccion == OPCION_ARCHIVO_COOKIES and not elegir_archivo_cookies():
-        seleccion = config.get('cookies', "Desactivado")
-        if seleccion == OPCION_ARCHIVO_COOKIES and not config.get('cookies_archivo'):
-            seleccion = "Desactivado"
-    combo_cookies.set(seleccion)
-    config['cookies'] = seleccion
-    guardar_config()
-    actualizar_lbl_archivo_cookies()
-    return seleccion
-
-
-def ofrecer_sesion(motivo):
-    """Ventana que ofrece usar la sesión del usuario y reintenta el análisis al elegir."""
-    ventana = ctk.CTkToplevel(root, fg_color=COLOR['fondo'])
-    ventana.title("Se necesita tu sesión")
-    ventana.geometry("460x330")
-    ventana.resizable(False, False)
-    ventana.transient(root)
-    ventana.after(100, ventana.grab_set)
-    try:
-        if os.path.exists(ICONO_PATH):
-            ventana.after(200, lambda: ventana.iconbitmap(ICONO_PATH))
-    except Exception:
-        pass
-
-    caja = tarjeta(ventana)
-    caja.pack(fill="both", expand=True, padx=16, pady=16)
-
-    ctk.CTkLabel(caja, text=f"  {motivo}  ", height=24, corner_radius=12, fg_color=COLOR['panel2'],
-                 text_color=COLOR['negativo'], font=fuente(11, "bold")).pack(anchor="w", padx=20, pady=(18, 10))
-    ctk.CTkLabel(caja, text="Usa tu sesión de YouTube para descargarlo", font=fuente(16, "bold"),
-                 text_color=COLOR['texto']).pack(anchor="w", padx=20)
-    ctk.CTkLabel(caja, text="Solo funciona con contenido que tu cuenta puede ver. "
-                            "Las cookies se leen en este equipo y no se envían a ningún otro sitio.",
-                 wraplength=390, justify="left", font=fuente(12), text_color=COLOR['suave']
-                 ).pack(anchor="w", padx=20, pady=(4, 14))
-
-    def usar(seleccion):
-        ventana.destroy()
-        if establecer_cookies(seleccion) != "Desactivado":
-            cargar_info_video()
-
-    ctk.CTkButton(caja, text="USAR ARCHIVO COOKIES.TXT", height=42, corner_radius=21,
-                  fg_color=COLOR['acento'], hover_color=COLOR['acento_hover'],
-                  text_color=COLOR['sobre_acento'], font=fuente(13, "bold"),
-                  command=lambda: usar(OPCION_ARCHIVO_COOKIES)).pack(fill="x", padx=20)
-
-    fila = ctk.CTkFrame(caja, fg_color="transparent")
-    fila.pack(fill="x", padx=20, pady=(10, 0))
-    ctk.CTkLabel(fila, text="O del navegador", font=fuente(12), text_color=COLOR['suave']).pack(side="left")
-    ctk.CTkButton(fila, text="USAR", width=70, height=34, corner_radius=17, **ESTILO_BOTON_SECUNDARIO,
-                  command=lambda: usar(menu_nav.get())).pack(side="right")
-    menu_nav = ctk.CTkOptionMenu(fila, values=NAVEGADORES_COOKIES, **dict(ESTILO_MENU, width=130))
-    menu_nav.set("Firefox")
-    menu_nav.pack(side="right", padx=8)
-
-    ctk.CTkButton(caja, text="AHORA NO", height=32, corner_radius=16, fg_color="transparent",
-                  hover_color=COLOR['panel2'], text_color=COLOR['suave'], font=fuente(12),
-                  command=ventana.destroy).pack(fill="x", padx=20, pady=(12, 16))
-
-
 TAM_MINIATURA = (288, 162)
 
 
@@ -464,7 +239,8 @@ def cargar_info_video():
                 'extract_flat': 'in_playlist' if es_modo_playlist else False,
                 'noplaylist': not es_modo_playlist
             }
-            aplicar_cookies(opciones_info, navegador_cookies)
+            if navegador_cookies != "Desactivado":
+                opciones_info['cookiesfrombrowser'] = (navegador_cookies.lower(),)
 
             with yt_dlp.YoutubeDL(opciones_info) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -482,6 +258,8 @@ def cargar_info_video():
                 calidades_video_actuales = ["Mejor disponible"]
             else:
                 titulo = info.get('title', 'Video sin título')
+                if len(titulo) > 75:
+                    titulo = titulo[:72] + "..."
 
                 duracion = info.get('duration')
                 if duracion:
@@ -553,23 +331,11 @@ def cargar_info_video():
             root.after(0, actualizar_ui)
 
         except Exception as e:
-            con_cookies = navegador_cookies != "Desactivado"
-            estado, detalle = explicar_error(e, con_cookies=con_cookies)
+            error_texto = str(e)  # Python borra 'e' al salir del except; se guarda para mostrarlo después
             def mostrar_error():
-                lbl_estado.configure(text=estado)
+                lbl_estado.configure(text="❌ Error al analizar el enlace")
                 btn_buscar.configure(state="normal")
-                if estado in ESTADOS_NECESITAN_SESION and not con_cookies:
-                    ofrecer_sesion(estado.replace("❌ ", ""))
-                elif estado == ESTADO_COOKIES_ILEGIBLES and navegador_cookies in NAVEGADORES_COOKIES:
-                    if messagebox.askyesno(
-                        "No se pudieron leer las cookies",
-                        f"No se pudieron leer las cookies de {navegador_cookies}.\n\n"
-                        "¿Quieres usar un archivo cookies.txt en su lugar? Funciona con cualquier navegador."
-                    ):
-                        if establecer_cookies(OPCION_ARCHIVO_COOKIES) == OPCION_ARCHIVO_COOKIES:
-                            cargar_info_video()
-                else:
-                    messagebox.showerror("Error", detalle)
+                messagebox.showerror("Error", f"No se pudo obtener información:\n{error_texto}\n\nConsejo: Si el video tiene restricción (+18) o es privado, selecciona tu navegador en 'Cookies de sesión'.")
             root.after(0, mostrar_error)
 
     threading.Thread(target=_tarea_info, daemon=True).start()
@@ -620,7 +386,6 @@ def ejecutar_descargas():
         lista_urls = lineas
 
     total_enlaces_cola = len(lista_urls)
-    fallos = []  # (url, mensaje de error)
 
     for idx, url in enumerate(lista_urls, start=1):
         enlace_actual_idx = idx
@@ -632,17 +397,16 @@ def ejecutar_descargas():
         else:
             plantilla_salida = os.path.join(carpeta, '%(title).90s [%(id)s].%(ext)s')
 
-        registro = RegistroErrores()
         opciones = {
             'outtmpl': plantilla_salida,
-            'logger': registro,
             'progress_hooks': [hook_progreso],
             'ffmpeg_location': FFMPEG_PATH,
             'noplaylist': not es_modo_playlist,
             'ignoreerrors': True,
         }
 
-        aplicar_cookies(opciones, navegador_cookies)
+        if navegador_cookies != "Desactivado":
+            opciones['cookiesfrombrowser'] = (navegador_cookies.lower(),)
 
         if tipo == "Solo Audio (MP3)":
             bitrate = "320" if "320" in calidad else ("128" if "128" in calidad else "192")
@@ -675,36 +439,12 @@ def ejecutar_descargas():
             with yt_dlp.YoutubeDL(opciones) as ydl:
                 ydl.download([url])
         except Exception as e:
-            registro.errores.append(str(e))
+            print(f"Error procesando enlace {url}: {e}")
 
-        for err in registro.errores:
-            fallos.append((url, err))
-
-    def finalizar():
-        btn_descargar.configure(state="normal")
-        btn_buscar.configure(state="normal")
-        if not fallos:
-            lbl_estado.configure(text=f"✔ Completadas {total_enlaces_cola} descarga(s)")
-            messagebox.showinfo("Proceso Finalizado", f"Se procesaron los {total_enlaces_cola} enlace(s) correctamente en:\n{carpeta}")
-            return
-
-        lbl_estado.configure(text=f"⚠ Terminado con {len(fallos)} error(es)")
-        # Agrupa los errores por explicación para no repetir el mismo consejo
-        explicaciones = {}
-        for _, err in fallos:
-            _, detalle = explicar_error(err, con_cookies=navegador_cookies != "Desactivado")
-            explicaciones[detalle] = explicaciones.get(detalle, 0) + 1
-        partes = []
-        for detalle, n in list(explicaciones.items())[:3]:
-            prefijo = f"({n} elemento(s))\n" if n > 1 else ""
-            partes.append(prefijo + detalle)
-        messagebox.showwarning(
-            "Proceso Finalizado con errores",
-            f"Algunos elementos no se pudieron descargar ({len(fallos)} error(es)).\n"
-            f"Lo que sí se descargó está en:\n{carpeta}\n\n" + "\n\n────────\n\n".join(partes)
-        )
-
-    root.after(0, finalizar)
+    lbl_estado.configure(text=f"✔ Completadas {total_enlaces_cola} descarga(s)")
+    messagebox.showinfo("Proceso Finalizado", f"Se procesaron los {total_enlaces_cola} enlace(s) correctamente en:\n{carpeta}")
+    btn_descargar.configure(state="normal")
+    btn_buscar.configure(state="normal")
 
 def iniciar_descarga():
     progreso_bar.configure(progress_color=COLOR['acento'])
@@ -967,22 +707,12 @@ menu_calidad = ctk.CTkOptionMenu(fila_opcion("Calidad", pady=(14, 0)), values=ca
                                  **ESTILO_MENU)
 menu_calidad.pack(side="right")
 
-combo_cookies = ctk.CTkOptionMenu(fila_opcion("Sesión"), values=OPCIONES_COOKIES,
-                                  command=establecer_cookies, **ESTILO_MENU)
+combo_cookies = ctk.CTkOptionMenu(fila_opcion("Cookies (+18)"),
+                                  values=["Desactivado", "Chrome", "Edge", "Firefox", "Brave", "Opera"],
+                                  **ESTILO_MENU)
 combo_cookies.pack(side="right")
 
-fila_archivo_cookies = ctk.CTkFrame(panel_der, fg_color="transparent", height=18)
-fila_archivo_cookies.pack(fill="x", padx=20, pady=(4, 0))
-lbl_archivo_cookies = ctk.CTkLabel(fila_archivo_cookies, text="", height=16, font=fuente(11),
-                                   text_color=COLOR['suave'])
-
-# Recupera la última elección de cookies (si el archivo ya no existe, vuelve a Desactivado)
-_cookies_guardadas = config.get('cookies', "Desactivado")
-if _cookies_guardadas not in OPCIONES_COOKIES or (
-        _cookies_guardadas == OPCION_ARCHIVO_COOKIES and not os.path.isfile(config.get('cookies_archivo') or "")):
-    _cookies_guardadas = "Desactivado"
-combo_cookies.set(_cookies_guardadas)
-actualizar_lbl_archivo_cookies()
+combo_cookies.set("Desactivado")
 
 frame_switches = ctk.CTkFrame(panel_der, fg_color="transparent")
 frame_switches.pack(fill="x", padx=20, pady=(10, 0))

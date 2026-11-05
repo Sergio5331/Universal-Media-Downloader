@@ -1,24 +1,23 @@
 <p align="center"><img src="assets/downloader.svg" width="100%" alt="Universal Media Downloader Pro — Para Windows"></p>
 
 <p align="center">
-  <a href="https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.0"><strong>Descargar el instalador</strong></a>
+  <a href="https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.1"><strong>Descargar el instalador</strong></a>
   &nbsp; · &nbsp;
   <a href="https://github.com/Sergio5331/Universal-Media-Downloader/issues/new?template=error.yml">Reportar un problema</a>
 </p>
 
 **Universal Media Downloader Pro** es una aplicación de escritorio para descargar video y extraer audio desde enlaces compatibles con su motor yt-dlp. Reúne descargas individuales, colas por lotes y opciones para playlists en una interfaz en español.
 
-> **Versión 1.1.0.** La disponibilidad de cada descarga depende del sitio de origen, del enlace y del motor de descarga.
+> **Versión 1.1.1.** La disponibilidad de cada descarga depende del sitio de origen, del enlace y del motor de descarga.
 
-## Novedades de la versión 1.1.0
+## Novedades de la versión 1.1.1
 
-- **Nuevo diseño oscuro en dos columnas:** enlace y vista previa a la izquierda, opciones de descarga a la derecha.
-- **Tu sesión para contenido privado:** opción de cargar un archivo `cookies.txt` en formato Netscape o usar un navegador para tus playlists privadas y el contenido al que tu cuenta tiene acceso. La elección se recuerda.
-- **Reintento con tu sesión:** si una playlist privada falla por falta de autenticación, la aplicación ofrece configurar las cookies y volver a intentarlo.
-- **Errores claros en español:** distingue problemas de cookies, contenido no disponible y conexión. El resumen final informa de los fallos de la cola.
-- **Vista previa de playlists:** muestra también su miniatura cuando está disponible.
+- **Icono nuevo:** círculo verde con flecha de descarga, incluido en la aplicación y el instalador.
+- **Corrección al mostrar errores de análisis:** el detalle del error se conserva hasta que se muestra el aviso en pantalla.
+- **Sesión simplificada:** esta revisión utiliza las cookies del navegador. Se retiraron la carga de archivos `cookies.txt`, las preferencias de sesión guardadas y el reintento asistido de playlists privadas.
+- **Resultado de la cola:** ya no hay un resumen detallado de fallos. Comprueba los archivos en la carpeta de destino al terminar.
 
-Consulta el [historial de cambios](CHANGELOG.md) y descarga el [instalador 1.1.0](https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.0).
+Consulta el [historial de cambios](CHANGELOG.md) y descarga el [instalador 1.1.1](https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.1).
 
 ## Funciones
 
@@ -35,8 +34,8 @@ Consulta el [historial de cambios](CHANGELOG.md) y descarga el [instalador 1.1.0
 
 ## Descargar e instalar
 
-1. Abre [Universal Media Downloader Pro 1.1.0](https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.0).
-2. En **Assets**, descarga **Instalador_UniversalDownloader_v1.1.exe**.
+1. Abre [Universal Media Downloader Pro 1.1.1](https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.1).
+2. En **Assets**, descarga **Instalador_UniversalDownloader_v1.1.1.exe**.
 3. Ejecuta el instalador y sigue el asistente en español. Puede solicitar permisos de administrador.
 4. Si quieres, activa la opción de crear un acceso directo en el escritorio.
 5. Abre **Universal Media Downloader** desde el menú Inicio o el acceso directo.
@@ -45,30 +44,16 @@ La distribución es para **Windows de 64 bits**. El ejecutable está empaquetado
 
 ## Uso básico
 
-**Un enlace:** en *Un enlace*, pega el enlace y pulsa **Analizar** (o Intro). Verás la miniatura, el título y la duración. En el panel derecho elige video o audio, la calidad y la carpeta, y pulsa **Descargar**.
+**Un enlace:** en *Un enlace*, pega el enlace y pulsa **Analizar** (o Intro). En el panel derecho elige video o audio, la calidad y la carpeta, y pulsa **Descargar**.
 
-**Varios enlaces:** cambia a *Cola por lote* y pega un enlace por línea. La aplicación los procesa uno tras otro con las opciones del panel derecho.
+**Varios enlaces:** cambia a *Cola por lote* y pega un enlace por línea. La aplicación los procesa en una cola con las opciones del panel derecho.
 
-### Contenido privado o con restricción (+18)
-
-Las cookies son opcionales y están desactivadas al principio. Hacen falta para descargar lo que solo ve tu cuenta: tus playlists privadas, videos privados que te han compartido, contenido +18 o solo para miembros. Cada persona usa su propia sesión en su propio equipo; con ellas no se puede ver contenido privado de otra cuenta.
-
-En **Cookies (+18 / Sesión)** puedes elegir:
-
-- **Archivo cookies.txt…** (recomendado, sirve con cualquier navegador):
-  1. Instala en tu navegador una extensión que exporte cookies en formato Netscape, por ejemplo *Get cookies.txt LOCALLY*.
-  2. Entra en youtube.com con tu cuenta iniciada y exporta las cookies a un archivo `.txt`.
-  3. En la aplicación elige **Archivo cookies.txt…** y selecciona ese archivo. La aplicación lo recuerda para la próxima vez.
-- **Un navegador**: la aplicación lee las cookies directamente. Firefox suele funcionar; Chrome, Edge, Brave y Opera cifran sus cookies y a menudo no se pueden leer, aunque el navegador esté cerrado.
-
-Si buscas una playlist privada sin cookies, la aplicación te ofrece usar tu sesión y vuelve a intentarlo.
-
-El archivo de cookies da acceso a tu cuenta: guárdalo solo en tu equipo, no lo compartas y vuelve a exportarlo si deja de funcionar (las cookies caducan). La elección se guarda en `%LOCALAPPDATA%\UniversalDownloader\config.json`.
+Las cookies del navegador son opcionales y están desactivadas inicialmente. Puedes elegir un navegador si el sitio necesita una sesión disponible en tu equipo.
 
 ## Notas de funcionamiento
 
 - La compatibilidad con sitios puede cambiar. Actualizar el motor puede ayudar, pero no garantiza que todos los enlaces funcionen.
-- Si algún elemento de la cola falla, el mensaje final lo indica y explica el motivo (contenido privado, cookies ilegibles, video no disponible, sin conexión…).
+- El mensaje final de la cola indica que terminó el procesamiento; en esta versión no garantiza que todos los archivos se hayan descargado. Comprueba la carpeta de destino.
 - La distribución utiliza una firma de desarrollo con certificado autofirmado. Windows puede mostrar un aviso porque el certificado no pertenece a un editor validado por una autoridad certificadora. Consulta la [información de firma](docs/SIGNING.md).
 - El instalador incorpora la licencia GPLv3. No se ha realizado una prueba de descarga de cada plataforma para esta publicación.
 

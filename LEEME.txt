@@ -1,8 +1,8 @@
-Universal Media Downloader Pro 1.1.0
+Universal Media Downloader Pro 1.1.1
 Windows de 64 bits
 
 INSTALACION
-1. Ejecuta Instalador_UniversalDownloader_v1.1.exe.
+1. Ejecuta Instalador_UniversalDownloader_v1.1.1.exe.
 2. Lee la licencia GNU GPLv3 y sigue el asistente en español.
 3. Opcionalmente, crea un acceso directo en el escritorio.
 4. Abre Universal Media Downloader desde el menu Inicio.
@@ -10,10 +10,10 @@ INSTALACION
 USO
 Pega un enlace en Un enlace, pulsa Analizar y elige video o audio y la carpeta.
 Para varios enlaces, pega uno por linea en Cola por lote.
-Para tus listas privadas o contenido con restriccion, selecciona tus propias
-cookies de sesion: archivo cookies.txt en formato Netscape o un navegador.
-La eleccion se recuerda y los errores se explican en español.
-No compartas el archivo de cookies: permite acceder a tu cuenta.
+Las cookies del navegador son opcionales y se seleccionan en Cookies (+18).
+Esta revision no carga archivos cookies.txt ni guarda preferencias de sesion.
+Comprueba los archivos de destino al terminar: el aviso final no garantiza
+que todos los enlaces se hayan descargado.
 Se requiere Internet para descargar contenido y actualizar el motor.
 Python y FFmpeg estan incluidos en el ejecutable.
 
@@ -21,7 +21,7 @@ LICENCIA Y CODIGO FUENTE
 GNU General Public License version 3 (GPL-3.0-only).
 Codigo y archivos de compilacion:
 https://github.com/Sergio5331/Universal-Media-Downloader
-La publicacion incluye UniversalDownloader-1.1.0-source.zip con el codigo usado.
+La publicacion incluye UniversalDownloader-1.1.1-source.zip con el codigo usado.
 La licencia se instala en la carpeta de la aplicacion.
 
 NOTAS

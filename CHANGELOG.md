@@ -1,5 +1,14 @@
 # Historial de cambios
 
+## 1.1.1 — 4 de noviembre de 2026
+
+- Icono de descarga nuevo, con círculo verde y flecha negra, en la aplicación y el instalador.
+- Script `scripts/generar_icono.py` para generar el icono en nueve resoluciones.
+- Corrección de la captura del mensaje de error antes de mostrarlo mediante un callback de la interfaz.
+- Se simplifica el uso de sesión a las cookies del navegador; se retiran la carga de `cookies.txt`, las preferencias de sesión guardadas y el reintento asistido de playlists privadas.
+- Se retiran las explicaciones detalladas de errores y el resumen de fallos de la cola. Es necesario comprobar los archivos de destino al terminar.
+- Documentación ajustada a las funciones de esta revisión y firma autofirmada de desarrollo.
+
 ## 1.1.0 — 4 de noviembre de 2026
 
 - Interfaz oscura en dos columnas, con opciones de descarga en un panel lateral.

@@ -24,8 +24,8 @@ En PowerShell, desde la raíz del repositorio:
 python -m PyInstaller --clean --noconfirm app_descargador.spec
 .\scripts\sign-local.ps1 -FilePath .\dist\app_descargador.exe
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" .\instalador.iss
-.\scripts\sign-local.ps1 -FilePath .\dist_instalador\Instalador_UniversalDownloader_v1.1.exe
-Get-FileHash .\dist_instalador\Instalador_UniversalDownloader_v1.1.exe -Algorithm SHA256
+.\scripts\sign-local.ps1 -FilePath .\dist_instalador\Instalador_UniversalDownloader_v1.1.1.exe
+Get-FileHash .\dist_instalador\Instalador_UniversalDownloader_v1.1.1.exe -Algorithm SHA256
 ```
 
 Ajusta la ruta de Inno Setup según su instalación. El orden es necesario: primero se firma la aplicación, después se incluye en el instalador y finalmente se firma el instalador. Calcula y publica el SHA256 **después** de firmarlo.
@@ -35,8 +35,8 @@ En la primera ejecución, si no hay una huella registrada, el script crea el cer
 ## Comprobar una descarga
 
 ```powershell
-Get-FileHash .\Instalador_UniversalDownloader_v1.1.exe -Algorithm SHA256
-Get-AuthenticodeSignature .\Instalador_UniversalDownloader_v1.1.exe |
+Get-FileHash .\Instalador_UniversalDownloader_v1.1.1.exe -Algorithm SHA256
+Get-AuthenticodeSignature .\Instalador_UniversalDownloader_v1.1.1.exe |
     Select-Object Status, @{Name='Thumbprint'; Expression={$_.SignerCertificate.Thumbprint}}
 ```
 
