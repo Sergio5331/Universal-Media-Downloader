@@ -1,14 +1,24 @@
 <p align="center"><img src="assets/downloader.svg" width="100%" alt="Universal Media Downloader Pro — Para Windows"></p>
 
 <p align="center">
-  <a href="https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.0.0"><strong>Descargar el instalador</strong></a>
+  <a href="https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.0"><strong>Descargar el instalador</strong></a>
   &nbsp; · &nbsp;
   <a href="https://github.com/Sergio5331/Universal-Media-Downloader/issues/new?template=error.yml">Reportar un problema</a>
 </p>
 
 **Universal Media Downloader Pro** es una aplicación de escritorio para descargar video y extraer audio desde enlaces compatibles con su motor yt-dlp. Reúne descargas individuales, colas por lotes y opciones para playlists en una interfaz en español.
 
-> **Versión 1.0.0.** La disponibilidad de cada descarga depende del sitio de origen, del enlace y del motor de descarga.
+> **Versión 1.1.0.** La disponibilidad de cada descarga depende del sitio de origen, del enlace y del motor de descarga.
+
+## Novedades de la versión 1.1.0
+
+- **Nuevo diseño oscuro en dos columnas:** enlace y vista previa a la izquierda, opciones de descarga a la derecha.
+- **Tu sesión para contenido privado:** opción de cargar un archivo `cookies.txt` en formato Netscape o usar un navegador para tus playlists privadas y el contenido al que tu cuenta tiene acceso. La elección se recuerda.
+- **Reintento con tu sesión:** si una playlist privada falla por falta de autenticación, la aplicación ofrece configurar las cookies y volver a intentarlo.
+- **Errores claros en español:** distingue problemas de cookies, contenido no disponible y conexión. El resumen final informa de los fallos de la cola.
+- **Vista previa de playlists:** muestra también su miniatura cuando está disponible.
+
+Consulta el [historial de cambios](CHANGELOG.md) y descarga el [instalador 1.1.0](https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.0).
 
 ## Funciones
 
@@ -25,8 +35,8 @@
 
 ## Descargar e instalar
 
-1. Abre [Universal Media Downloader Pro 1.0.0](https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.0.0).
-2. En **Assets**, descarga **Instalador_UniversalDownloader_v1.0.exe**.
+1. Abre [Universal Media Downloader Pro 1.1.0](https://github.com/Sergio5331/Universal-Media-Downloader/releases/tag/v1.1.0).
+2. En **Assets**, descarga **Instalador_UniversalDownloader_v1.1.exe**.
 3. Ejecuta el instalador y sigue el asistente en español. Puede solicitar permisos de administrador.
 4. Si quieres, activa la opción de crear un acceso directo en el escritorio.
 5. Abre **Universal Media Downloader** desde el menú Inicio o el acceso directo.
